@@ -34,10 +34,13 @@ jobs:
           "$HOME/godot-bin/godot" --version
 
       - name: Import project
-        run: "$HOME/godot-bin/godot" --headless --path . --import
+        run: |
+          "$HOME/godot-bin/godot" --headless --path . --import
 
       - name: Data + script smoke test
-        run: "$HOME/godot-bin/godot" --headless --path . --script res://tools/smoke_test.gd
+        run: |
+          "$HOME/godot-bin/godot" --headless --path . --script res://tools/smoke_test.gd
 
       - name: Gameplay simulation test
-        run: timeout 180 "$HOME/godot-bin/godot" --headless --path . -- --sim-test
+        run: |
+          timeout 180 "$HOME/godot-bin/godot" --headless --path . -- --sim-test
