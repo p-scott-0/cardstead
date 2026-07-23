@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "recipes": [
+    { "id": "chop_wood",        "name": "Chop Wood",     "inputs": { "villager": 1, "tree": 1 },                    "time": 6,  "outputs": { "wood": 1 },      "keep": ["villager"], "decrement": ["tree"] },
+    { "id": "mine_stone",       "name": "Mine Stone",    "inputs": { "villager": 1, "rock": 1 },                    "time": 6,  "outputs": { "stone": 1 },     "keep": ["villager"], "decrement": ["rock"] },
+    { "id": "pick_berries",     "name": "Pick Berries",  "inputs": { "villager": 1, "berry_bush": 1 },              "time": 4,  "outputs": { "berry": 1 },     "keep": ["villager"], "decrement": ["berry_bush"] },
+    { "id": "pick_apples",      "name": "Pick Apples",   "inputs": { "villager": 1, "apple_tree": 1 },              "time": 5,  "outputs": { "apple": 1 },     "keep": ["villager"], "decrement": ["apple_tree"] },
+    { "id": "cut_stick",        "name": "Cut Stick",     "inputs": { "villager": 1, "wood": 1 },                    "time": 4,  "outputs": { "stick": 1 },     "keep": ["villager"], "decrement": [] },
+    { "id": "saw_plank",        "name": "Saw Plank",     "inputs": { "villager": 1, "wood": 2 },                    "time": 8,  "outputs": { "plank": 1 },     "keep": ["villager"], "decrement": [] },
+    { "id": "mold_brick",       "name": "Mold Brick",    "inputs": { "villager": 1, "stone": 2 },                   "time": 8,  "outputs": { "brick": 1 },     "keep": ["villager"], "decrement": [] },
+    { "id": "build_house",      "name": "Build House",   "inputs": { "villager": 1, "wood": 2, "stone": 1 },        "time": 12, "outputs": { "house": 1 },     "keep": ["villager"], "decrement": [] },
+    { "id": "make_baby",        "name": "Make Baby",     "inputs": { "villager": 2, "house": 1 },                   "time": 25, "outputs": { "baby": 1 },      "keep": ["villager", "house"], "decrement": [] },
+    { "id": "grow_baby",        "name": "Grow Up",       "inputs": { "baby": 1 },                                   "time": 60, "outputs": { "villager": 1 }, "keep": [], "decrement": [] },
+    { "id": "plant_berry_bush", "name": "Plant Berries", "inputs": { "soil": 1, "berry": 1 },                       "time": 10, "outputs": { "berry_bush": 1 }, "keep": [], "decrement": [] },
+    { "id": "grow_wheat",       "name": "Grow Wheat",    "inputs": { "soil": 1, "wheat_seed": 1 },                  "time": 15, "outputs": { "wheat": 3 },     "keep": [], "decrement": [] },
+    { "id": "build_campfire",   "name": "Build Campfire","inputs": { "villager": 1, "stick": 1, "wood": 1 },        "time": 8,  "outputs": { "campfire": 1 },  "keep": ["villager"], "decrement": [] },
+    { "id": "bake_flatbread",   "name": "Bake Flatbread","inputs": { "villager": 1, "wheat": 2, "campfire": 1 },    "time": 10, "outputs": { "flatbread": 1 }, "keep": ["villager", "campfire"], "decrement": [] }
+  ]
+}

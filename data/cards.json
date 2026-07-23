@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "cards": [
+    { "id": "villager",   "name": "Villager",   "type": "unit",     "icon": "🧍", "sell": 0, "sellable": false, "food_value": 0, "charges": 0, "eats": 2 },
+    { "id": "baby",       "name": "Baby",       "type": "unit",     "icon": "👶", "sell": 0, "sellable": false, "food_value": 0, "charges": 0, "eats": 1 },
+    { "id": "tree",       "name": "Tree",       "type": "nature",   "icon": "🌲", "sell": 1, "sellable": true,  "food_value": 0, "charges": 3, "eats": 0 },
+    { "id": "rock",       "name": "Rock",       "type": "nature",   "icon": "🪨", "sell": 1, "sellable": true,  "food_value": 0, "charges": 3, "eats": 0 },
+    { "id": "berry_bush", "name": "Berry Bush", "type": "nature",   "icon": "🌿", "sell": 1, "sellable": true,  "food_value": 0, "charges": 3, "eats": 0 },
+    { "id": "apple_tree", "name": "Apple Tree", "type": "nature",   "icon": "🌳", "sell": 2, "sellable": true,  "food_value": 0, "charges": 3, "eats": 0 },
+    { "id": "soil",       "name": "Soil",       "type": "nature",   "icon": "🟫", "sell": 1, "sellable": true,  "food_value": 0, "charges": 0, "eats": 0 },
+    { "id": "wood",       "name": "Wood",       "type": "resource", "icon": "🪵", "sell": 1, "sellable": true,  "food_value": 0, "charges": 0, "eats": 0 },
+    { "id": "stone",      "name": "Stone",      "type": "resource", "icon": "🥌", "sell": 1, "sellable": true,  "food_value": 0, "charges": 0, "eats": 0 },
+    { "id": "stick",      "name": "Stick",      "type": "resource", "icon": "🥢", "sell": 1, "sellable": true,  "food_value": 0, "charges": 0, "eats": 0 },
+    { "id": "plank",      "name": "Plank",      "type": "resource", "icon": "🪧", "sell": 3, "sellable": true,  "food_value": 0, "charges": 0, "eats": 0 },
+    { "id": "brick",      "name": "Brick",      "type": "resource", "icon": "🧱", "sell": 3, "sellable": true,  "food_value": 0, "charges": 0, "eats": 0 },
+    { "id": "berry",      "name": "Berry",      "type": "food",     "icon": "🍓", "sell": 1, "sellable": true,  "food_value": 1, "charges": 0, "eats": 0 },
+    { "id": "apple",      "name": "Apple",      "type": "food",     "icon": "🍎", "sell": 1, "sellable": true,  "food_value": 1, "charges": 0, "eats": 0 },
+    { "id": "wheat_seed", "name": "Wheat Seed", "type": "resource", "icon": "🌱", "sell": 1, "sellable": true,  "food_value": 0, "charges": 0, "eats": 0 },
+    { "id": "wheat",      "name": "Wheat",      "type": "resource", "icon": "🌾", "sell": 1, "sellable": true,  "food_value": 0, "charges": 0, "eats": 0 },
+    { "id": "flatbread",  "name": "Flatbread",  "type": "food",     "icon": "🫓", "sell": 2, "sellable": true,  "food_value": 2, "charges": 0, "eats": 0 },
+    { "id": "house",      "name": "House",      "type": "building", "icon": "🏠", "sell": 3, "sellable": true,  "food_value": 0, "charges": 0, "eats": 0 },
+    { "id": "campfire",   "name": "Campfire",   "type": "building", "icon": "🔥", "sell": 2, "sellable": true,  "food_value": 0, "charges": 0, "eats": 0 },
+    { "id": "coin",       "name": "Coin",       "type": "special",  "icon": "🪙", "sell": 0, "sellable": false, "food_value": 0, "charges": 0, "eats": 0 },
+    { "id": "card_pack",  "name": "Card Pack",  "type": "special",  "icon": "🎴", "sell": 0, "sellable": false, "food_value": 0, "charges": 0, "eats": 0 }
+  ]
+}

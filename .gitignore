@@ -1,0 +1,10 @@
+# Godot 4 cache
+.godot/
+
+# Build outputs
+build/
+dist/
+
+# Misc
+*.tmp
+__pycache__/

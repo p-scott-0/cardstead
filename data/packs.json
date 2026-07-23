@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "packs": [
+    {
+      "id": "basic_pack",
+      "name": "Village Pack",
+      "cost": 3,
+      "count": 3,
+      "weights": {
+        "berry": 4,
+        "wood": 3,
+        "tree": 3,
+        "rock": 2.5,
+        "stone": 2,
+        "berry_bush": 2,
+        "soil": 2,
+        "wheat_seed": 1.5,
+        "apple_tree": 1.2,
+        "stick": 1,
+        "villager": 0.8
+      }
+    }
+  ]
+}
