@@ -69,6 +69,17 @@ jobs:
           echo "--- exported files ---"
           find build/ios -maxdepth 2 | head -40
 
+      - name: Select newest Xcode
+        run: |
+          set -euo pipefail
+          echo "Available Xcodes:"
+          ls -d /Applications/Xcode*.app
+          LATEST=$(ls -d /Applications/Xcode*.app | sort -V | tail -n1)
+          echo "Selecting: $LATEST"
+          sudo xcode-select -s "$LATEST/Contents/Developer"
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i iphoneos || true
+
       - name: Build unsigned .app
         run: |
           set -euo pipefail
@@ -83,7 +94,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="" DEBUG_INFORMATION_FORMAT=dwarf build \
           || xcodebuild -project "$PROJ" -target "$SCHEME" -configuration Release \
-            -sdk iphoneos -derivedDataPath build/dd \
+            -sdk iphoneos SYMROOT="$PWD/build/dd/Build/Products" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="" DEBUG_INFORMATION_FORMAT=dwarf build
 
