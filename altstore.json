@@ -1,0 +1,34 @@
+{
+  "name": "Cardstead Source",
+  "identifier": "com.pscott.cardstead.source",
+  "subtitle": "A tiny card-stacking village game",
+  "website": "https://github.com/p-scott-0/cardstead",
+  "apps": [
+    {
+      "name": "Cardstead",
+      "bundleIdentifier": "com.pscott.cardstead",
+      "developerName": "p-scott-0",
+      "subtitle": "Stack cards, feed villagers, survive the days.",
+      "localizedDescription": "Cardstead is a cozy card-stacking village game. Drag cards onto each other to harvest resources, cook food, raise villagers, and keep everyone fed at the end of each day.\n\nSell spare cards for coins and buy card packs to grow your village. Original mechanics-inspired homage, built with Godot.",
+      "iconURL": "https://raw.githubusercontent.com/p-scott-0/cardstead/main/icon_ios_1024.png",
+      "tintColor": "3f78c8",
+      "category": "games",
+      "screenshots": [],
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-23",
+          "localizedDescription": "Rolling build v0.1.0.",
+          "downloadURL": "https://github.com/p-scott-0/cardstead/releases/download/latest/Cardstead.ipa",
+          "size": 26945186,
+          "minOSVersion": "14.0"
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {}
+      }
+    }
+  ],
+  "news": []
+}
