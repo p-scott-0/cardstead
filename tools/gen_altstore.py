@@ -56,6 +56,8 @@ def main():
                 "versions": [
                     {
                         "version": args.version,
+                        # CFBundleVersion falls back to the same project version
+                        "buildVersion": args.version,
                         "date": args.date,
                         "localizedDescription": f"Rolling build v{args.version}.",
                         "downloadURL": args.url,
