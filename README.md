@@ -60,6 +60,12 @@ Notes on free-Apple-ID sideloading:
 - **Buy mat:** drop 3 coins on 🎴 to get a card pack; tap a pack to open it.
 - **Pan** by dragging empty felt, **pinch** to zoom.
 
+On a PC the game plays the same with a mouse: **left-drag** a card to move or
+stack it, **left-drag empty felt** to pan, **mouse wheel** to zoom, **click** a
+card pack to open it. (Godot converts mouse input into the same touch events
+the phone sends, so desktop and phone run identical code — the test suite
+drives both paths.)
+
 ## Development (Windows, no Mac needed)
 
 - Install [Godot 4.7.1](https://godotengine.org/download/archive/) and open

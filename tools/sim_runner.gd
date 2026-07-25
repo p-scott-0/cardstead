@@ -14,6 +14,54 @@ func _ready() -> void:
 	call_deferred("_run")
 
 
+# Input events enter through the window, so viewport coordinates must be
+# converted back to window space or the stretch transform rescales them.
+func _to_window(viewport_pos: Vector2) -> Vector2:
+	return get_viewport().get_screen_transform() * viewport_pos
+
+
+func _touch(pos: Vector2, pressed: bool, index := 0) -> void:
+	var e := InputEventScreenTouch.new()
+	e.index = index
+	e.pressed = pressed
+	e.position = pos
+	Input.parse_input_event(e)
+
+
+func _drag(from: Vector2, to: Vector2, index := 0) -> void:
+	var e := InputEventScreenDrag.new()
+	e.index = index
+	e.position = to
+	e.relative = to - from
+	Input.parse_input_event(e)
+
+
+func _mouse_button(pos: Vector2, pressed: bool) -> void:
+	var e := InputEventMouseButton.new()
+	e.button_index = MOUSE_BUTTON_LEFT
+	e.pressed = pressed
+	e.position = pos
+	e.global_position = pos
+	Input.parse_input_event(e)
+
+
+func _mouse_motion(pos: Vector2) -> void:
+	var e := InputEventMouseMotion.new()
+	e.position = pos
+	e.global_position = pos
+	e.button_mask = MOUSE_BUTTON_MASK_LEFT
+	Input.parse_input_event(e)
+
+
+func _mouse_wheel(pos: Vector2, button: int) -> void:
+	var e := InputEventMouseButton.new()
+	e.button_index = button
+	e.pressed = true
+	e.position = pos
+	e.global_position = pos
+	Input.parse_input_event(e)
+
+
 func check(cond: bool, label: String) -> void:
 	checks += 1
 	if not cond:
@@ -164,6 +212,52 @@ func _run() -> void:
 	GameState.start_next_day()
 	check(GameState.day == 2, "T9 day advanced")
 	check(not get_tree().paused, "T9 unpaused")
+
+	# T10: touch events drag a card onto another (the on-device input path)
+	b.clear_board()
+	var mA := b.spawn_card("wood", Vector2(1200, 800))
+	var mB := b.spawn_card("stone", Vector2(1600, 800))
+	await get_tree().process_frame
+	var xf := b.get_canvas_transform()
+	var screen_a: Vector2 = xf * (b.stack_of(mA).base_pos + CardNode.SIZE * 0.5)
+	var screen_b: Vector2 = xf * (b.stack_of(mB).base_pos + CardNode.SIZE * 0.5)
+	_touch(_to_window(screen_a), true)
+	await get_tree().process_frame
+	check(b.dragged != null, "T10 touch press picks up a card")
+	_drag(_to_window(screen_a), _to_window(screen_b))
+	await get_tree().process_frame
+	_touch(_to_window(screen_b), false)
+	await get_tree().process_frame
+	check(b.dragged == null, "T10 touch release drops it")
+	check(b.stacks.size() == 1 and b.stacks[0].size() == 2,
+		"T10 dropped card stacked (%d stacks)" % b.stacks.size())
+
+	# T10b: the same gesture driven by desktop mouse events
+	b.clear_board()
+	var dA := b.spawn_card("wood", Vector2(1200, 800))
+	var dB := b.spawn_card("stone", Vector2(1600, 800))
+	await get_tree().process_frame
+	var m_a: Vector2 = xf * (b.stack_of(dA).base_pos + CardNode.SIZE * 0.5)
+	var m_b: Vector2 = xf * (b.stack_of(dB).base_pos + CardNode.SIZE * 0.5)
+	_mouse_button(_to_window(m_a), true)
+	await get_tree().process_frame
+	check(b.dragged != null, "T10b mouse press picks up a card")
+	_mouse_motion(_to_window(m_b))
+	await get_tree().process_frame
+	_mouse_button(_to_window(m_b), false)
+	await get_tree().process_frame
+	check(b.dragged == null, "T10b mouse release drops it")
+	check(b.stacks.size() == 1 and b.stacks[0].size() == 2,
+		"T10b dropped card stacked (%d stacks)" % b.stacks.size())
+
+	# T11: mouse wheel zooms the camera
+	var z_before: float = GameState.camera.zoom_level()
+	_mouse_wheel(_to_window(Vector2(960, 540)), MOUSE_BUTTON_WHEEL_UP)
+	await get_tree().process_frame
+	check(GameState.camera.zoom_level() > z_before, "T11 wheel up zooms in")
+	_mouse_wheel(_to_window(Vector2(960, 540)), MOUSE_BUTTON_WHEEL_DOWN)
+	await get_tree().process_frame
+	check(absf(GameState.camera.zoom_level() - z_before) < 0.001, "T11 wheel down zooms back out")
 
 	# leave no test save behind
 	SaveMgr.clear_save()
