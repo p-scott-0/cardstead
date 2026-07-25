@@ -17,10 +17,10 @@
       "versions": [
         {
           "version": "0.1.0",
-          "date": "2026-07-23",
+          "date": "2026-07-25",
           "localizedDescription": "Rolling build v0.1.0.",
           "downloadURL": "https://github.com/p-scott-0/cardstead/releases/download/latest/Cardstead.ipa",
-          "size": 26945186,
+          "size": 26945935,
           "minOSVersion": "14.0"
         }
       ],
