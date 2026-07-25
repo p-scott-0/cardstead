@@ -25,7 +25,10 @@ One-time setup (Windows PC + iPhone):
 2. Install **AltServer** from [altstore.io](https://altstore.io) and run it
    (it lives in the system tray).
 3. Connect the iPhone by USB, then AltServer tray icon → *Install AltStore* →
-   pick your device, sign in with your Apple ID.
+   pick your device, sign in with your Apple ID. While it's plugged in, turn on
+   **"Sync with this iPhone over Wi-Fi"** in iTunes so AltServer can reach the
+   phone later without the cable, and allow AltServer through Windows Firewall
+   on the *private* network profile.
 4. On the phone: Settings → General → VPN & Device Management → trust your
    Apple ID profile. On iOS 16+: Settings → Privacy & Security → enable
    **Developer Mode** if prompted.
@@ -42,8 +45,13 @@ Updating: new builds appear in AltStore's **Updates** tab after each push to
 Notes on free-Apple-ID sideloading:
 
 - Apps expire after **7 days**; AltStore auto-refreshes in the background
-  while your phone is on the same Wi-Fi as a PC running AltServer. If it ever
-  lapses, open AltStore and tap Refresh — your save is untouched.
+  while your phone and a PC running AltServer are on the same local network.
+  A PC wired by ethernet to the same router that serves the Wi-Fi counts —
+  AltServer is discovered over Bonjour/mDNS, which crosses the wired and
+  wireless halves of one network fine. What breaks it is the phone being on a
+  *different* network: a guest SSID, a separate VLAN/subnet, or a router with
+  AP/client isolation enabled. If it ever lapses, open AltStore and tap
+  Refresh — your save is untouched.
 - A free Apple ID can have **3 sideloaded apps** installed at once (AltStore
   itself counts as one) and creates at most 10 new app IDs per week.
 - Deleting the app deletes its save.
