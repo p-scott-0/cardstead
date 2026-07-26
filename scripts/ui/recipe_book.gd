@@ -75,7 +75,7 @@ func open_book() -> void:
 			row.text = _format_recipe(r)
 			row.add_theme_color_override("font_color", Color("f2e8c9"))
 		else:
-			row.text = "❔ — ??? —"
+			row.text = "— ??? —"
 			row.add_theme_color_override("font_color", Color(1, 1, 1, 0.35))
 		_rows.add_child(row)
 	visible = true

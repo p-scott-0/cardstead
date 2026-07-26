@@ -7,6 +7,7 @@ signal next_day_pressed
 
 var _title: Label
 var _body: Label
+var _eaten: Label
 var _starved: Label
 var _next_btn: Button
 
@@ -59,6 +60,13 @@ func _ready() -> void:
 	_body.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
 	col.add_child(_body)
 
+	_eaten = Label.new()
+	_eaten.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_eaten.add_theme_font_override("font", CardNode.get_emoji_font())
+	_eaten.add_theme_font_size_override("font_size", 30)
+	_eaten.add_theme_color_override("font_color", Color(1, 1, 1, 0.9))
+	col.add_child(_eaten)
+
 	_starved = Label.new()
 	_starved.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_starved.add_theme_font_size_override("font_size", 24)
@@ -74,9 +82,16 @@ func _ready() -> void:
 
 func show_summary(s: Dictionary) -> void:
 	_title.text = "🌙 Day %d complete" % int(s.get("day", 1))
-	_body.text = "%d villagers, %d babies fed\n%d food eaten (%d cards)" % [
-		int(s.get("villagers", 0)), int(s.get("babies", 0)),
-		int(s.get("eaten_food", 0)), int(s.get("eaten_cards", 0))]
+	_body.text = "%d villagers, %d babies fed" % [
+		int(s.get("villagers", 0)), int(s.get("babies", 0))]
+	var eaten: Dictionary = s.get("eaten", {})
+	if eaten.is_empty():
+		_eaten.text = "nothing was eaten"
+	else:
+		var parts: PackedStringArray = []
+		for id in eaten:
+			parts.append("%s ×%d" % [String(Db.card(id).get("icon", "?")), int(eaten[id])])
+		_eaten.text = "ate:  " + "   ".join(parts)
 	var n := int(s.get("starved", 0))
 	_starved.text = "💀 %d starved!" % n if n > 0 else ""
 	_starved.visible = n > 0

@@ -30,14 +30,27 @@ var _sb_body: StyleBoxFlat
 var _sb_header: StyleBoxFlat
 var _sb_shadow: StyleBoxFlat
 
-static var _emoji_font: SystemFont
+const EMOJI_FONT_PATH := "res://assets/fonts/TwemojiMozilla.ttf"
+
+static var _emoji_font: Font
 
 
-static func get_emoji_font() -> SystemFont:
+# Bundled color emoji font (COLR renders on every platform, unlike system
+# emoji fonts — Apple Color Emoji draws blank in Godot on iOS, and Windows
+# 10's Segoe UI Emoji predates several of our card glyphs). The default
+# font is chained as fallback so letters and digits in mixed strings render.
+static func get_emoji_font() -> Font:
 	if _emoji_font == null:
-		_emoji_font = SystemFont.new()
-		_emoji_font.font_names = PackedStringArray([
-			"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"])
+		if ResourceLoader.exists(EMOJI_FONT_PATH):
+			var f: FontFile = load(EMOJI_FONT_PATH)
+			var fallbacks: Array[Font] = [ThemeDB.fallback_font]
+			f.fallbacks = fallbacks
+			_emoji_font = f
+		else:
+			var sf := SystemFont.new()
+			sf.font_names = PackedStringArray([
+				"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"])
+			_emoji_font = sf
 	return _emoji_font
 
 
@@ -64,7 +77,7 @@ func _build_styles() -> void:
 	_sb_body = StyleBoxFlat.new()
 	_sb_body.bg_color = Color("f4efe2")
 	_sb_body.set_corner_radius_all(int(RADIUS))
-	_sb_body.border_color = Color("2b2b23", 0.55)
+	_sb_body.border_color = Color("2b2b23", 0.85)
 	_sb_body.set_border_width_all(2)
 
 	_sb_header = StyleBoxFlat.new()
@@ -108,6 +121,7 @@ func _build_labels() -> void:
 		sell_label.position = Vector2(SIZE.x - 62, SIZE.y - 32)
 		sell_label.size = Vector2(56, 26)
 		sell_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		sell_label.add_theme_font_override("font", get_emoji_font())
 		sell_label.add_theme_font_size_override("font_size", 16)
 		sell_label.add_theme_color_override("font_color", Color("6a5c34"))
 		sell_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -118,6 +132,7 @@ func _build_labels() -> void:
 		food_label.text = "+%d🍽" % int(def["food_value"])
 		food_label.position = Vector2(8, SIZE.y - 32)
 		food_label.size = Vector2(70, 26)
+		food_label.add_theme_font_override("font", get_emoji_font())
 		food_label.add_theme_font_size_override("font_size", 16)
 		food_label.add_theme_color_override("font_color", Color("9a3d3d"))
 		food_label.mouse_filter = Control.MOUSE_FILTER_IGNORE

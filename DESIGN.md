@@ -136,5 +136,9 @@ coin-merge radius 260. `StackData`: fan 38 px / coins 10 px.
 - **v2 — combat:** enemy cards, weapons, HP; likely a `combat` recipe class.
 - Quests/goals checklist; more packs and card tiers; equipment.
 - iCloud-free save export/import (copy JSON).
-- If system emoji ever fails on a device, bundle a fallback emoji font in
-  `assets/fonts/` (swap is data-free).
+- ~~If system emoji ever fails on a device, bundle a fallback emoji font~~
+  Done in v0.2.0: `assets/fonts/TwemojiMozilla.ttf` (COLR) is the icon font
+  everywhere — system emoji proved unrenderable on iOS and incomplete on
+  Windows 10. The sim test asserts glyph coverage for every icon (T12).
+- Day-end: animate the eaten cards on the board itself (they currently
+  disappear behind the summary popup, which lists them instead).

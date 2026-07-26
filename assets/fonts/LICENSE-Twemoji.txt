@@ -1,0 +1,11 @@
+TwemojiMozilla.ttf — Twemoji Mozilla color emoji font
+
+This font packages the Twemoji emoji artwork as a COLR/CPAL color font.
+
+- Emoji graphics: Copyright Twitter, Inc and other contributors.
+  Licensed under CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+- Font packaging: Mozilla (https://github.com/mozilla/twemoji-colr),
+  licensed under the Apache License, Version 2.0.
+
+The font is used unmodified, solely to render emoji card icons and UI
+glyphs in Cardstead.

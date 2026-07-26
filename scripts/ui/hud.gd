@@ -81,7 +81,7 @@ func _ready() -> void:
 	recipes_btn.pressed.connect(func(): recipes_pressed.emit())
 	right.add_child(recipes_btn)
 
-	var menu_btn := _make_button("☰ Menu")
+	var menu_btn := _make_button("Menu")
 	menu_btn.pressed.connect(func(): menu_pressed.emit())
 	right.add_child(menu_btn)
 

@@ -110,3 +110,8 @@ drives both paths.)
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+Card icons render with the bundled [Twemoji Mozilla](https://github.com/mozilla/twemoji-colr)
+color font — Twemoji artwork © Twitter, Inc and contributors (CC-BY 4.0),
+font packaging by Mozilla (Apache 2.0). See
+[assets/fonts/LICENSE-Twemoji.txt](assets/fonts/LICENSE-Twemoji.txt).

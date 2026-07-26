@@ -63,15 +63,15 @@ func _ready() -> void:
 	_subtitle.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
 	col.add_child(_subtitle)
 
-	_continue_btn = _make_button("▶ Continue")
+	_continue_btn = _make_button("Continue")
 	_continue_btn.pressed.connect(func(): continue_pressed.emit())
 	col.add_child(_continue_btn)
 
-	_resume_btn = _make_button("▶ Resume")
+	_resume_btn = _make_button("Resume")
 	_resume_btn.pressed.connect(func(): resume_pressed.emit())
 	col.add_child(_resume_btn)
 
-	_new_btn = _make_button("✦ New Game")
+	_new_btn = _make_button("New Game")
 	_new_btn.pressed.connect(func(): new_game_pressed.emit())
 	col.add_child(_new_btn)
 

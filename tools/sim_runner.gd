@@ -160,6 +160,7 @@ func _run() -> void:
 	var sum6: Dictionary = b.day_end_feed()
 	check(int(sum6["starved"]) == 0, "T6 nobody starves")
 	check(int(sum6["eaten_food"]) == 2, "T6 two food eaten")
+	check(int(sum6.get("eaten", {}).get("berry", 0)) == 2, "T6 eaten report lists 2 berries")
 	check(b.count_cards("villager") == 1, "T6 villager alive")
 	check(b.count_cards("berry") == 0, "T6 berries eaten")
 
@@ -258,6 +259,22 @@ func _run() -> void:
 	_mouse_wheel(_to_window(Vector2(960, 540)), MOUSE_BUTTON_WHEEL_DOWN)
 	await get_tree().process_frame
 	check(absf(GameState.camera.zoom_level() - z_before) < 0.001, "T11 wheel down zooms back out")
+
+	# T12: the bundled emoji font actually covers every glyph the game shows
+	var ef := CardNode.get_emoji_font()
+	check(ef is FontFile, "T12 bundled emoji font loaded (not system fallback)")
+	var missing: Array = []
+	var ui_glyphs := "🃏📖💰🎴🪙🌙💀🔊🔇🍽"
+	for id in Db.cards:
+		for i in String(Db.cards[id].get("icon", "")).length():
+			var cp: int = String(Db.cards[id]["icon"]).unicode_at(i)
+			if cp != 0xFE0F and not ef.has_char(cp):
+				missing.append("%s U+%X" % [id, cp])
+	for i in ui_glyphs.length():
+		var cp2: int = ui_glyphs.unicode_at(i)
+		if cp2 != 0xFE0F and not ef.has_char(cp2):
+			missing.append("ui U+%X" % cp2)
+	check(missing.is_empty(), "T12 all glyphs covered (missing: %s)" % str(missing))
 
 	# leave no test save behind
 	SaveMgr.clear_save()

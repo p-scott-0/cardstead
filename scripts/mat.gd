@@ -41,6 +41,7 @@ func _ready() -> void:
 	_sub.position = Vector2(0, 150)
 	_sub.size = Vector2(MAT_SIZE.x, 60)
 	_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_sub.add_theme_font_override("font", CardNode.get_emoji_font())
 	_sub.add_theme_font_size_override("font_size", 26)
 	_sub.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
 	_sub.mouse_filter = Control.MOUSE_FILTER_IGNORE

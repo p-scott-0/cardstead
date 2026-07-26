@@ -109,7 +109,9 @@ func _new_card(id: String) -> CardNode:
 	return card
 
 
-func spawn_card(id: String, pos: Vector2, charges := -1) -> CardNode:
+# `origin` (optional): where the card visually appears from — it slides to
+# its resting spot and pops in, instead of blinking into existence.
+func spawn_card(id: String, pos: Vector2, charges := -1, origin := Vector2.INF) -> CardNode:
 	var card := _new_card(id)
 	if charges >= 0:
 		card.charges_left = charges
@@ -117,12 +119,16 @@ func spawn_card(id: String, pos: Vector2, charges := -1) -> CardNode:
 	st.cards = [card]
 	st.base_pos = clamp_to_board(pos)
 	stacks.append(st)
-	card.position = st.base_pos
+	if origin.is_finite():
+		card.position = origin
+		_pop_in(card)
+	else:
+		card.position = st.base_pos
 	recheck_stack(st)
 	return card
 
 
-func spawn_coin(pos: Vector2) -> void:
+func spawn_coin(pos: Vector2, origin := Vector2.INF) -> void:
 	var best: StackData = null
 	var best_d := COIN_MERGE_RADIUS
 	for st: StackData in stacks:
@@ -134,10 +140,20 @@ func spawn_coin(pos: Vector2) -> void:
 			best = st
 	if best != null:
 		var c := _new_card("coin")
-		c.position = pos
+		c.position = origin if origin.is_finite() else pos
 		best.cards.append(c)
+		if origin.is_finite():
+			_pop_in(c)
+		queue_redraw()  # coin-count badge
 	else:
-		spawn_card("coin", pos)
+		spawn_card("coin", pos, -1, origin)
+
+
+func _pop_in(card: CardNode) -> void:
+	card.scale = Vector2(0.35, 0.35)
+	var tw := card.create_tween()
+	tw.tween_property(card, "scale", Vector2.ONE, 0.25) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func count_cards(id: String) -> int:
@@ -227,9 +243,9 @@ func _complete_work(st: StackData) -> void:
 		for i in int(outputs[out_id]):
 			var p := find_free_spot(st.base_pos)
 			if out_id == "coin":
-				spawn_coin(p)
+				spawn_coin(p, st.base_pos)
 			else:
-				spawn_card(out_id, p)
+				spawn_card(out_id, p, -1, st.base_pos)
 
 	GameState.discover_recipe(String(r["id"]))
 	Sfx.play("complete")
@@ -327,6 +343,18 @@ func _draw() -> void:
 		var bar := Rect2(st.base_pos + Vector2(0, -20), Vector2(CardNode.SIZE.x, 12))
 		draw_rect(bar.grow(2.0), Color(0, 0, 0, 0.4))
 		draw_rect(Rect2(bar.position, Vector2(bar.size.x * frac, bar.size.y)), Color("f2cf5b"))
+
+	# coin-stack count badges
+	var badge_font := ThemeDB.fallback_font
+	for st: StackData in stacks:
+		if not st.is_coin_stack() or st.size() < 2:
+			continue
+		var top := st.top_card_rect()
+		var chip := Rect2(top.position + Vector2(top.size.x - 52, -14), Vector2(58, 30))
+		draw_rect(chip, Color(0.13, 0.11, 0.08, 0.92))
+		draw_rect(chip, Color(1, 1, 1, 0.35), false, 2.0)
+		draw_string(badge_font, chip.position + Vector2(0, 22), "×%d" % st.size(),
+			HORIZONTAL_ALIGNMENT_CENTER, chip.size.x, 19, Color.WHITE)
 
 
 # ---------------------------------------------------------------- input
@@ -539,8 +567,9 @@ func _sell_drop(st: StackData) -> void:
 			keepers.append(c)
 	if total > 0:
 		Sfx.play("coin")
+		var mat_center := sell_mat.zone().get_center()
 		for i in total:
-			spawn_coin(sell_mat.position + Vector2(MatNode.MAT_SIZE.x * 0.5 - CardNode.SIZE.x * 0.5, -CardNode.SIZE.y - 40))
+			spawn_coin(sell_mat.position + Vector2(MatNode.MAT_SIZE.x * 0.5 - CardNode.SIZE.x * 0.5, -CardNode.SIZE.y - 40), mat_center)
 	if keepers.is_empty():
 		stacks.erase(st)
 	else:
@@ -566,7 +595,7 @@ func _buy_drop(st: StackData) -> void:
 	Sfx.play("coin")
 	while buy_mat.coins_parked >= buy_mat.cost:
 		buy_mat.coins_parked -= buy_mat.cost
-		spawn_card("card_pack", buy_mat.position + Vector2(MatNode.MAT_SIZE.x * 0.5 - CardNode.SIZE.x * 0.5, -CardNode.SIZE.y - 40))
+		spawn_card("card_pack", buy_mat.position + Vector2(MatNode.MAT_SIZE.x * 0.5 - CardNode.SIZE.x * 0.5, -CardNode.SIZE.y - 40), -1, buy_mat.zone().get_center())
 		Sfx.play("pack")
 
 
@@ -585,7 +614,7 @@ func _open_pack(st: StackData) -> void:
 		var id := _weighted_pick(weights)
 		var ang := -PI * 0.5 + (i - 1) * 0.55
 		var p := clamp_to_board(origin + Vector2(cos(ang), sin(ang)) * 230.0)
-		spawn_card(id, p)
+		spawn_card(id, p, -1, origin)
 	emit_signal("board_changed")
 
 
@@ -628,12 +657,14 @@ func day_end_feed() -> Dictionary:
 
 	var eaten_food := 0
 	var eaten_cards := 0
+	var eaten_by_id := {}
 	for f in foods:
 		if need <= 0:
 			break
 		need -= int(f.def["food_value"])
 		eaten_food += int(f.def["food_value"])
 		eaten_cards += 1
+		eaten_by_id[f.id] = int(eaten_by_id.get(f.id, 0)) + 1
 		_remove_card(f)
 
 	var starved := 0
@@ -656,6 +687,7 @@ func day_end_feed() -> Dictionary:
 		"babies": babies.size(),
 		"eaten_food": eaten_food,
 		"eaten_cards": eaten_cards,
+		"eaten": eaten_by_id,
 		"starved": starved,
 	}
 
