@@ -109,6 +109,23 @@ jobs:
           echo "App bundle: $APP"
           /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist" || true
           /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Info.plist" || true
+
+          # Godot's iOS exporter always writes camera/mic/photo usage strings
+          # (empty ones). The game uses none of those, so strip the keys —
+          # otherwise AltStore reports them as undeclared permissions.
+          for k in NSCameraUsageDescription NSMicrophoneUsageDescription NSPhotoLibraryUsageDescription; do
+            if /usr/libexec/PlistBuddy -c "Delete :$k" "$APP/Info.plist" 2>/dev/null; then
+              echo "removed $k"
+            else
+              echo "$k not present"
+            fi
+          done
+          LEFT=$(/usr/libexec/PlistBuddy -c "Print" "$APP/Info.plist" | grep -ci "UsageDescription" || true)
+          echo "usage-description keys remaining: $LEFT"
+          if [ "$LEFT" -ne 0 ]; then
+            echo "ERROR: app still declares privacy permissions"; exit 1
+          fi
+
           mkdir -p dist Payload
           cp -R "$APP" Payload/
           zip -qry "dist/${APP_NAME}.ipa" Payload
