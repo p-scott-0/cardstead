@@ -14,6 +14,7 @@ enum State { MENU, RUNNING, DAY_END, GAME_OVER }
 var state: State = State.MENU
 var day := 1
 var day_time := 0.0
+var time_paused := false  # player pause: day + work timers hold, cards stay movable
 var discovered_cards := {}
 var discovered_recipes := {}
 var sound_on := true
@@ -28,11 +29,20 @@ func version() -> String:
 
 func _process(delta: float) -> void:
 	# _process pauses automatically with the tree, so no pause check needed.
-	if state != State.RUNNING or board == null:
+	if state != State.RUNNING or board == null or time_paused:
 		return
 	day_time += delta
 	if day_time >= DAY_LENGTH:
 		_end_day()
+
+
+func toggle_time_pause() -> void:
+	if state != State.RUNNING:
+		return
+	time_paused = not time_paused
+	Sfx.play("place")
+	if time_paused:
+		SaveMgr.save_game()
 
 
 func _end_day() -> void:
@@ -56,6 +66,7 @@ func _end_day() -> void:
 func start_next_day() -> void:
 	day += 1
 	day_time = 0.0
+	time_paused = false
 	state = State.RUNNING
 	get_tree().paused = false
 	SaveMgr.save_game()
@@ -64,6 +75,7 @@ func start_next_day() -> void:
 func new_game() -> void:
 	day = 1
 	day_time = 0.0
+	time_paused = false
 	discovered_cards = {}
 	discovered_recipes = {}
 	board.setup_new_game()

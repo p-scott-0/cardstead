@@ -8,6 +8,7 @@ extends Node2D
 const SIZE := Vector2(140, 196)
 const RADIUS := 12.0
 const HEADER_H := 34.0
+const HEADER_H_BIG := 50.0  # stack-head mode: enlarged header = whole-stack grab handle
 
 const TYPE_COLORS := {
 	"unit": Color("3f78c8"),
@@ -25,6 +26,9 @@ var charges_left := 0:
 		charges_left = v
 		queue_redraw()
 var lifted := false
+var stack_head := false
+
+var _name_label: Label
 
 var _sb_body: StyleBoxFlat
 var _sb_header: StyleBoxFlat
@@ -73,6 +77,22 @@ func set_lifted(v: bool) -> void:
 	queue_redraw()
 
 
+# Bottom card of a 2+ stack: bigger header band and name so the whole-stack
+# grab area is obvious and easy to hit.
+func set_stack_head(v: bool) -> void:
+	if stack_head == v:
+		return
+	stack_head = v
+	if _name_label != null:
+		_name_label.size = Vector2(SIZE.x, (HEADER_H_BIG if v else HEADER_H) - 4.0)
+		_name_label.add_theme_font_size_override("font_size", 25 if v else 19)
+	queue_redraw()
+
+
+func header_height() -> float:
+	return HEADER_H_BIG if stack_head else HEADER_H
+
+
 func _build_styles() -> void:
 	_sb_body = StyleBoxFlat.new()
 	_sb_body.bg_color = Color("f4efe2")
@@ -91,18 +111,18 @@ func _build_styles() -> void:
 
 
 func _build_labels() -> void:
-	var name_label := Label.new()
-	name_label.text = String(def.get("name", "?"))
-	name_label.position = Vector2(0, 2)
-	name_label.size = Vector2(SIZE.x, HEADER_H - 4)
-	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 19)
-	name_label.add_theme_color_override("font_color", Color.WHITE)
-	name_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
-	name_label.add_theme_constant_override("shadow_offset_y", 1)
-	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(name_label)
+	_name_label = Label.new()
+	_name_label.text = String(def.get("name", "?"))
+	_name_label.position = Vector2(0, 2)
+	_name_label.size = Vector2(SIZE.x, HEADER_H - 4)
+	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_name_label.add_theme_font_size_override("font_size", 19)
+	_name_label.add_theme_color_override("font_color", Color.WHITE)
+	_name_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
+	_name_label.add_theme_constant_override("shadow_offset_y", 1)
+	_name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_name_label)
 
 	var icon_label := Label.new()
 	icon_label.text = String(def.get("icon", "?"))
@@ -143,7 +163,7 @@ func _draw() -> void:
 	var shadow_off := Vector2(0, 10) if lifted else Vector2(2, 5)
 	draw_style_box(_sb_shadow, Rect2(shadow_off, SIZE))
 	draw_style_box(_sb_body, Rect2(Vector2.ZERO, SIZE))
-	draw_style_box(_sb_header, Rect2(Vector2.ZERO, Vector2(SIZE.x, HEADER_H)))
+	draw_style_box(_sb_header, Rect2(Vector2.ZERO, Vector2(SIZE.x, header_height())))
 	if int(def.get("charges", 0)) > 0:
 		for i in charges_left:
 			draw_circle(Vector2(16 + i * 14, SIZE.y - 16), 4.5, header_color())

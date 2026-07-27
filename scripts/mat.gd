@@ -56,9 +56,21 @@ func _update_labels() -> void:
 	if kind == "sell":
 		_title.text = "💰"
 		_sub.text = "SELL — drop cards"
+		_sub.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
 	else:
 		_title.text = "🎴"
 		_sub.text = "BUY PACK — %d/%d 🪙" % [coins_parked, cost]
+
+
+# Sell-mat price preview while a stack hovers over the zone; -1 restores.
+func preview(value: int) -> void:
+	if kind != "sell" or _sub == null:
+		return
+	if value >= 0:
+		_sub.text = "SELL for %d 🪙" % value
+		_sub.add_theme_color_override("font_color", Color("f2cf5b"))
+	else:
+		_update_labels()
 
 
 func _draw() -> void:

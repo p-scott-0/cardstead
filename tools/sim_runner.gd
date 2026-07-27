@@ -91,6 +91,14 @@ func _run() -> void:
 	check(b.count_cards("wood") == 3, "T2 three wood total (got %d)" % b.count_cards("wood"))
 	check(b.count_cards("tree") == 0, "T2 tree exhausted")
 	check(b.stack_of(v).work_recipe.is_empty(), "T2 villager idle after tree gone")
+	var wood_stacks := 0
+	var wood_pile: StackData = null
+	for stw: StackData in b.stacks:
+		if stw.top() != null and stw.top().id == "wood":
+			wood_stacks += 1
+			wood_pile = stw
+	check(wood_stacks == 1 and wood_pile != null and wood_pile.size() == 3,
+		"T2 produced wood pools into one pile (%d stacks)" % wood_stacks)
 
 	# T3: changing stack contents restarts work with the new recipe
 	b.clear_board()
@@ -260,17 +268,58 @@ func _run() -> void:
 	await get_tree().process_frame
 	check(absf(GameState.camera.zoom_level() - z_before) < 0.001, "T11 wheel down zooms back out")
 
-	# T13: the grab-tab above a stack picks up the whole stack
+	# T13: enlarged stack-head: wider first gap, header grab picks whole stack
 	b.clear_board()
-	var tabA := b.spawn_card("wood", Vector2(800, 800))
-	b.stack_of(tabA).cards.append(b._new_card("stone"))
-	var tab_stack := b.stack_of(tabA)
-	var tab_hit: Dictionary = b._hit_test(tab_stack.base_pos + Vector2(CardNode.SIZE.x * 0.5, -16))
-	check(not tab_hit.is_empty() and int(tab_hit.get("index", -1)) == 0
-		and tab_hit.get("stack") == tab_stack, "T13 tab grabs whole stack")
-	var lower_hit: Dictionary = b._hit_test(tab_stack.target_pos_for(1) + Vector2(20, 30))
+	var headA := b.spawn_card("wood", Vector2(800, 800))
+	var headB := b.spawn_card("stone", Vector2(1200, 800))
+	b.merge_stacks(b.stack_of(headA), b.stack_of(headB))
+	var head_stack := b.stack_of(headA)
+	check(head_stack.target_pos_for(1).y - head_stack.base_pos.y == StackData.HEAD_GAP,
+		"T13 first fan gap widened")
+	check(headA.stack_head and not headB.stack_head, "T13 bottom card is the stack head")
+	var head_hit: Dictionary = b._hit_test(head_stack.base_pos + Vector2(70, 46))
+	check(not head_hit.is_empty() and int(head_hit.get("index", -1)) == 0,
+		"T13 enlarged header area grabs whole stack")
+	var lower_hit: Dictionary = b._hit_test(head_stack.target_pos_for(1) + Vector2(20, 30))
 	check(not lower_hit.is_empty() and int(lower_hit.get("index", -1)) == 1,
-		"T13 lower card still grabs a substack")
+		"T13 upper card still grabs a substack")
+
+	# T14: villager on top of stacked bushes forages down the pile
+	b.clear_board()
+	var bushA := b.spawn_card("berry_bush", Vector2(600, 600))
+	var bushB := b.spawn_card("berry_bush", Vector2(1000, 600))
+	b.merge_stacks(b.stack_of(bushA), b.stack_of(bushB))
+	bushB.charges_left = 1
+	var vv := b.spawn_card("villager", Vector2(1400, 600))
+	b.merge_stacks(b.stack_of(bushA), b.stack_of(vv))
+	var chain := b.stack_of(vv)
+	check(String(chain.work_recipe.get("id", "")) == "pick_berries" and chain.work_k == 2,
+		"T14 forages the top bush via suffix match")
+	b.simulate(4.5)
+	check(b.count_cards("berry") == 1, "T14 first berry")
+	check(b.stack_of(vv) != null and b.stack_of(vv).cards.size() == 2,
+		"T14 spent bush removed, villager stays on the pile")
+	check(String(b.stack_of(vv).work_recipe.get("id", "")) == "pick_berries",
+		"T14 keeps foraging the next bush")
+	b.simulate(4.5)
+	check(b.count_cards("berry") >= 2, "T14 second berry from the next bush")
+
+	# T15: gameplay pause freezes work + day timers; unpause resumes in place
+	b.clear_board()
+	var pv := b.spawn_card("villager", Vector2(600, 600))
+	var pt := b.spawn_card("tree", Vector2(1000, 600))
+	b.merge_stacks(b.stack_of(pv), b.stack_of(pt))
+	GameState.state = GameState.State.RUNNING
+	GameState.time_paused = true
+	GameState.day_time = 10.0
+	b.simulate(3.0)
+	GameState._process(3.0)
+	check(b.stack_of(pv).work_t == 0.0, "T15 work frozen while paused")
+	check(GameState.day_time == 10.0, "T15 day timer frozen while paused")
+	GameState.time_paused = false
+	b.simulate(1.0)
+	check(b.stack_of(pv).work_t > 0.5, "T15 work resumes after unpause")
+	GameState.day_time = 0.0
 
 	# T12: the bundled emoji font actually covers every glyph the game shows
 	var ef := CardNode.get_emoji_font()

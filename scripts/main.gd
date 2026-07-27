@@ -63,7 +63,7 @@ func _build_game() -> void:
 	menu.name = "MainMenu"
 	ui.add_child(menu)
 
-	board.board_changed.connect(func(): hud.update_coins(board.count_cards("coin")))
+	board.board_changed.connect(func(): hud.update_stats(board))
 	GameState.day_ended.connect(summary.show_summary)
 	GameState.run_over.connect(menu.show_game_over)
 

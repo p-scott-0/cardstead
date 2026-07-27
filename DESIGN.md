@@ -39,10 +39,14 @@ coins and card packs never stack (tap a pack to open it).
 
 ## Recipes (`data/recipes.json`)
 
-A stack starts work when its contents (order ignored) **exactly** match a
-recipe's `inputs` multiset. Exact matching keeps behavior predictable and
-lets recipe lookup be one dictionary hit on a canonical signature
-(`"tree:1|villager:1"`). Duplicate signatures are a data error (CI fails).
+A stack starts work when the **largest group of cards counted from the top**
+exactly matches a recipe's `inputs` multiset (whole-stack matches win, then
+progressively smaller suffixes are tried). Lookup stays one dictionary hit
+per suffix on a canonical signature (`"tree:1|villager:1"`); duplicate
+signatures are a data error (CI fails). Suffix matching is what makes
+forage chains work: a villager dropped on a pile of berry bushes harvests
+the bush beneath it, and when that bush depletes the villager keeps going
+with the rest of the pile. Cards *below* the matched suffix are untouched.
 
 On completion, every input card is consumed **except**:
 
@@ -147,4 +151,10 @@ coin-merge radius 260. `StackData`: fan 38 px / coins 10 px.
   (doubles as the work progress bar); coins are ordinary cards again
   (normal fan, no badge — spawn-time merge into a nearby coin stack kept);
   shared rounded UI theme (`ui/ui_kit.gd`).
+- v0.4.0: suffix recipe matching (forage chains); outputs pool into nearby
+  same-card piles; enlarged bottom-card header + wider first fan gap as the
+  whole-stack handle (grab-tab removed — it read as a progress bar); tap the
+  day timer to pause gameplay (day + work timers hold, cards stay movable);
+  HUD food have/need (red when short) and card count; sell-price preview on
+  the mat; New Game double-tap confirm over a live run.
 - Coin chest building (Stacklands-style coin storage card) — planned.

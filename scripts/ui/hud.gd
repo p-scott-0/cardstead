@@ -11,6 +11,7 @@ signal menu_pressed
 var _day_label: Label
 var _day_bar: ProgressBar
 var _coins_label: Label
+var _food_label: Label
 var _margin: MarginContainer
 
 
@@ -31,7 +32,9 @@ func _ready() -> void:
 	_margin.add_child(row)
 
 	var left := VBoxContainer.new()
-	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# tapping the timer block toggles the gameplay pause
+	left.mouse_filter = Control.MOUSE_FILTER_STOP
+	left.gui_input.connect(_on_timer_input)
 	left.add_theme_constant_override("separation", 4)
 	row.add_child(left)
 
@@ -61,12 +64,20 @@ func _ready() -> void:
 	left.add_child(_day_bar)
 
 	_coins_label = Label.new()
-	_coins_label.text = "🪙 0"
+	_coins_label.text = "🪙 0    🃏 0"
 	_coins_label.add_theme_font_override("font", CardNode.get_emoji_font())
 	_coins_label.add_theme_font_size_override("font_size", 26)
 	_coins_label.add_theme_color_override("font_color", Color.WHITE)
 	_coins_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	left.add_child(_coins_label)
+
+	_food_label = Label.new()
+	_food_label.text = "🍽 0 / 0"
+	_food_label.add_theme_font_override("font", CardNode.get_emoji_font())
+	_food_label.add_theme_font_size_override("font_size", 26)
+	_food_label.add_theme_color_override("font_color", Color.WHITE)
+	_food_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	left.add_child(_food_label)
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -100,12 +111,27 @@ func _make_button(text: String) -> Button:
 
 
 func _process(_delta: float) -> void:
-	_day_label.text = "Day %d" % GameState.day
+	if GameState.time_paused:
+		_day_label.text = "Day %d — paused" % GameState.day
+		_day_bar.modulate = Color(0.6, 0.6, 0.6)
+	else:
+		_day_label.text = "Day %d" % GameState.day
+		_day_bar.modulate = Color.WHITE
 	_day_bar.value = clampf(GameState.day_time / GameState.DAY_LENGTH, 0.0, 1.0)
 
 
-func update_coins(n: int) -> void:
-	_coins_label.text = "🪙 %d" % n
+func _on_timer_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		GameState.toggle_time_pause()
+		accept_event()
+
+
+func update_stats(board: Board) -> void:
+	_coins_label.text = "🪙 %d    🃏 %d" % [board.count_cards("coin"), board.total_cards()]
+	var fs := board.food_stats()
+	_food_label.text = "🍽 %d / %d" % [fs.x, fs.y]
+	_food_label.add_theme_color_override("font_color",
+		Color("ff8a7a") if fs.x < fs.y else Color.WHITE)
 
 
 func _apply_safe_area() -> void:

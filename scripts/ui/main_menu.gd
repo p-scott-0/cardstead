@@ -12,6 +12,7 @@ var _continue_btn: Button
 var _resume_btn: Button
 var _new_btn: Button
 var _sound_btn: Button
+var _confirm_pending := false
 
 
 func _ready() -> void:
@@ -64,7 +65,7 @@ func _ready() -> void:
 	col.add_child(_resume_btn)
 
 	_new_btn = _make_button("New Game")
-	_new_btn.pressed.connect(func(): new_game_pressed.emit())
+	_new_btn.pressed.connect(_on_new_pressed)
 	col.add_child(_new_btn)
 
 	_sound_btn = _make_button("")
@@ -87,6 +88,24 @@ func _make_button(text: String) -> Button:
 	b.add_theme_font_override("font", CardNode.get_emoji_font())
 	b.add_theme_font_size_override("font_size", 26)
 	return b
+
+
+# Starting a new game over a live run needs a second tap within 3 seconds.
+func _on_new_pressed() -> void:
+	var risky := GameState.state != GameState.State.MENU and SaveMgr.has_save() \
+		and _resume_btn.visible
+	if risky and not _confirm_pending:
+		_confirm_pending = true
+		_new_btn.text = "Really? Wipes this run!"
+		var timer := get_tree().create_timer(3.0, true)
+		timer.timeout.connect(func():
+			_confirm_pending = false
+			if is_instance_valid(_new_btn):
+				_new_btn.text = "New Game")
+		return
+	_confirm_pending = false
+	_new_btn.text = "New Game"
+	new_game_pressed.emit()
 
 
 func _toggle_sound() -> void:

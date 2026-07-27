@@ -13,14 +13,13 @@ const TAP_TIME_MS := 350
 const TAP_DIST := 14.0
 const SEPARATION_RATE := 6.0
 const MAX_PUSH_STEP := 40.0
-const COIN_MERGE_RADIUS := 260.0
+const PILE_MERGE_RADIUS := 300.0
 
 var camera: CameraRig
 var card_layer: Node2D
 var sell_mat: MatNode
 var buy_mat: MatNode
 var stacks: Array = []  # of StackData; array order == draw order (later on top)
-var _tab_sb: StyleBoxFlat
 
 # --- input state ---
 var dragged: StackData = null
@@ -37,12 +36,6 @@ var last_screen := {}  # touch index -> screen pos
 
 
 func _ready() -> void:
-	_tab_sb = StyleBoxFlat.new()
-	_tab_sb.bg_color = Color(0.07, 0.05, 0.03, 0.6)
-	_tab_sb.set_corner_radius_all(9)
-	_tab_sb.border_color = Color(1, 1, 1, 0.28)
-	_tab_sb.set_border_width_all(1)
-
 	card_layer = Node2D.new()
 	card_layer.name = "CardLayer"
 
@@ -135,25 +128,39 @@ func spawn_card(id: String, pos: Vector2, charges := -1, origin := Vector2.INF) 
 	return card
 
 
-func spawn_coin(pos: Vector2, origin := Vector2.INF) -> void:
+# Produced cards pool into a nearby pile of the same card (a stack made
+# entirely of that card, not currently working); otherwise they spawn fresh
+# beside their source.
+func spawn_output(id: String, from_pos: Vector2) -> void:
+	var pile := _find_pile(id, from_pos)
+	if pile != null:
+		var c := _new_card(id)
+		c.position = from_pos
+		pile.cards.append(c)
+		_pop_in(c)
+		recheck_stack(pile)
+	else:
+		spawn_card(id, find_free_spot(from_pos), -1, from_pos)
+
+
+func _find_pile(id: String, near: Vector2) -> StackData:
 	var best: StackData = null
-	var best_d := COIN_MERGE_RADIUS
+	var best_d := PILE_MERGE_RADIUS
 	for st: StackData in stacks:
-		if st == dragged or not st.is_coin_stack():
+		if st == dragged or st.is_empty() or not st.work_recipe.is_empty():
 			continue
-		var d := st.base_pos.distance_to(pos)
+		var pure := true
+		for c in st.cards:
+			if c.id != id:
+				pure = false
+				break
+		if not pure:
+			continue
+		var d := st.base_pos.distance_to(near)
 		if d < best_d:
 			best_d = d
 			best = st
-	if best != null:
-		var c := _new_card("coin")
-		c.position = origin if origin.is_finite() else pos
-		best.cards.append(c)
-		if origin.is_finite():
-			_pop_in(c)
-		queue_redraw()  # coin-count badge
-	else:
-		spawn_card("coin", pos, -1, origin)
+	return best
 
 
 func _pop_in(card: CardNode) -> void:
@@ -205,28 +212,43 @@ func find_free_spot(near: Vector2) -> Vector2:
 
 # ---------------------------------------------------------------- recipes
 
+# A stack works when the LARGEST group of cards counted from the top exactly
+# matches a recipe. Whole-stack matches win (largest first); smaller suffixes
+# let a villager on top of a pile of bushes forage the one beneath and keep
+# going as they deplete.
 func recheck_stack(st: StackData) -> void:
 	st.work_recipe = {}
 	st.work_t = 0.0
+	st.work_k = 0
 	if st.is_empty():
 		return
-	var sig := RecipeEngine.signature_of_ids(st.card_ids())
-	var r: Dictionary = Db.recipe_index.get(sig, {})
-	if not r.is_empty():
-		st.work_recipe = r
+	var ids := st.card_ids()
+	for k in range(ids.size(), 0, -1):
+		var sig := RecipeEngine.signature_of_ids(ids.slice(ids.size() - k))
+		var r: Dictionary = Db.recipe_index.get(sig, {})
+		if not r.is_empty():
+			st.work_recipe = r
+			st.work_k = k
+			break
+	for i in st.cards.size():
+		st.cards[i].set_stack_head(i == 0 and st.cards.size() >= 2)
 	queue_redraw()
 
 
 func _complete_work(st: StackData) -> void:
 	var r := st.work_recipe
+	var k := st.work_k if st.work_k > 0 else st.cards.size()
 	st.work_recipe = {}
 	st.work_t = 0.0
+	st.work_k = 0
 	var keep: Array = r.get("keep", [])
 	var dec: Array = r.get("decrement", [])
 	var needed: Dictionary = (r["inputs"] as Dictionary).duplicate()
+	var lower: Array = st.cards.slice(0, st.cards.size() - k)
+	var suffix: Array = st.cards.slice(st.cards.size() - k)
 	var remaining: Array = []
 	var freed: Array = []
-	for c in st.cards:
+	for c in suffix:
 		if int(needed.get(c.id, 0)) > 0:
 			needed[c.id] = int(needed[c.id]) - 1
 			if c.id in keep:
@@ -241,18 +263,14 @@ func _complete_work(st: StackData) -> void:
 				freed.append(c)
 		else:
 			remaining.append(c)
-	st.cards = remaining
+	st.cards = lower + remaining
 	for c in freed:
 		c.queue_free()
 
 	var outputs: Dictionary = r["outputs"]
 	for out_id in outputs:
 		for i in int(outputs[out_id]):
-			var p := find_free_spot(st.base_pos)
-			if out_id == "coin":
-				spawn_coin(p, st.base_pos)
-			else:
-				spawn_card(out_id, p, -1, st.base_pos)
+			spawn_output(String(out_id), st.base_pos)
 
 	GameState.discover_recipe(String(r["id"]))
 	Sfx.play("complete")
@@ -271,14 +289,15 @@ func _process(delta: float) -> void:
 	if GameState.state == GameState.State.DAY_END:
 		return
 	var any_work := false
-	for st in stacks:
-		if st.work_recipe.is_empty() or st == dragged:
-			continue
-		any_work = true
-		st.work_t += delta
-		if st.work_t >= float(st.work_recipe["time"]):
-			_complete_work(st)
-			break  # stacks array mutated; catch the rest next frame
+	if not GameState.time_paused:
+		for st in stacks:
+			if st.work_recipe.is_empty() or st == dragged:
+				continue
+			any_work = true
+			st.work_t += delta
+			if st.work_t >= float(st.work_recipe["time"]):
+				_complete_work(st)
+				break  # stacks array mutated; catch the rest next frame
 	if any_work:
 		queue_redraw()
 
@@ -345,17 +364,14 @@ func _draw() -> void:
 		draw_line(Vector2(0, gy), Vector2(BOARD_SIZE.x, gy), Color(1, 1, 1, 0.03), 2.0)
 	draw_rect(Rect2(Vector2.ZERO, BOARD_SIZE), Color("1d3b2b"), false, 12.0)
 
-	# grab-tabs above stacks (pick up the whole stack) + work progress fill
+	# work progress bars (only while a recipe is running)
 	for st: StackData in stacks:
-		var working := not st.work_recipe.is_empty()
-		if st == dragged or (st.size() < 2 and not working):
+		if st.work_recipe.is_empty():
 			continue
-		var tab := tab_rect(st)
-		draw_style_box(_tab_sb, tab)
-		if working:
-			var frac := clampf(st.work_t / float(st.work_recipe["time"]), 0.0, 1.0)
-			draw_rect(Rect2(tab.position + Vector2(3, 3),
-				Vector2((tab.size.x - 6.0) * frac, tab.size.y - 6.0)), Color("f2cf5b"))
+		var frac := clampf(st.work_t / float(st.work_recipe["time"]), 0.0, 1.0)
+		var bar := Rect2(st.base_pos + Vector2(0, -20), Vector2(CardNode.SIZE.x, 12))
+		draw_rect(bar.grow(2.0), Color(0, 0, 0, 0.4))
+		draw_rect(Rect2(bar.position, Vector2(bar.size.x * frac, bar.size.y)), Color("f2cf5b"))
 
 
 # ---------------------------------------------------------------- input
@@ -381,18 +397,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			camera.set_zoom_level(camera.zoom_level() / 1.12, event.position)
 
 
-func tab_rect(st: StackData) -> Rect2:
-	return Rect2(st.base_pos + Vector2(8, -26), Vector2(CardNode.SIZE.x - 16.0, 20))
-
-
 func _hit_test(world_pos: Vector2) -> Dictionary:
 	for si in range(stacks.size() - 1, -1, -1):
 		var st: StackData = stacks[si]
 		if st == dragged:
 			continue
-		# the grab-tab above a stack picks up the whole thing
-		if st.size() >= 2 and tab_rect(st).grow(6.0).has_point(world_pos):
-			return {"stack": st, "index": 0}
 		# check cards top-down so the visually-topmost card wins
 		for ci in range(st.cards.size() - 1, -1, -1):
 			if Rect2(st.target_pos_for(ci), CardNode.SIZE).has_point(world_pos):
@@ -430,8 +439,10 @@ func _pickup(st: StackData, index: int, idx: int, spos: Vector2) -> void:
 		picked.base_pos = st.target_pos_for(index)
 		stacks.append(picked)
 		recheck_stack(st)
+	recheck_stack(picked)  # refresh stack-head flags for the carried substack
 	picked.work_recipe = {}
 	picked.work_t = 0.0
+	picked.work_k = 0
 	dragged = picked
 	drag_touch = idx
 	drag_offset = wpos - picked.base_pos
@@ -464,6 +475,8 @@ func _touch_move(idx: int, spos: Vector2) -> void:
 		if spos.distance_to(drag_start_screen) > TAP_DIST:
 			drag_moved = true
 		dragged.base_pos = clamp_to_board(to_world(spos) - drag_offset)
+		var over_sell := sell_mat.zone().has_point(dragged.bottom_card_rect().get_center())
+		sell_mat.preview(_stack_sell_value(dragged) if over_sell else -1)
 
 
 func _update_pinch() -> void:
@@ -499,7 +512,34 @@ func _touch_up(idx: int, spos: Vector2) -> void:
 
 # ---------------------------------------------------------------- dropping
 
+func _stack_sell_value(st: StackData) -> int:
+	var total := 0
+	for c in st.cards:
+		if bool(c.def.get("sellable", false)):
+			total += int(c.def.get("sell", 0))
+	return total
+
+
+func total_cards() -> int:
+	var n := 0
+	for st: StackData in stacks:
+		n += st.cards.size()
+	return n
+
+
+# x = food available on the board, y = food needed at day end
+func food_stats() -> Vector2i:
+	var have := 0
+	var need := 0
+	for st in stacks:
+		for c in st.cards:
+			have += int(c.def.get("food_value", 0))
+			need += int(c.def.get("eats", 0))
+	return Vector2i(have, need)
+
+
 func _drop(st: StackData, is_tap := false) -> void:
+	sell_mat.preview(-1)
 	for c in st.cards:
 		c.set_lifted(false)
 
@@ -577,9 +617,9 @@ func _sell_drop(st: StackData) -> void:
 			keepers.append(c)
 	if total > 0:
 		Sfx.play("coin")
-		var mat_center := sell_mat.zone().get_center()
+		var coin_from := sell_mat.position + Vector2(MatNode.MAT_SIZE.x * 0.5 - CardNode.SIZE.x * 0.5, -CardNode.SIZE.y - 60)
 		for i in total:
-			spawn_coin(sell_mat.position + Vector2(MatNode.MAT_SIZE.x * 0.5 - CardNode.SIZE.x * 0.5, -CardNode.SIZE.y - 40), mat_center)
+			spawn_output("coin", coin_from)
 	if keepers.is_empty():
 		stacks.erase(st)
 	else:

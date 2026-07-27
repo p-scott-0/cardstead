@@ -6,11 +6,13 @@ extends RefCounted
 # are derived from this structure every frame.
 
 const Y_OFFSET := 38.0
+const HEAD_GAP := 54.0  # first gap is wider: the bottom card's enlarged header is the whole-stack grab handle
 
 var cards: Array = []             # of CardNode, index 0 = bottom
 var base_pos := Vector2.ZERO
 var work_recipe: Dictionary = {}  # active recipe def, {} when idle
 var work_t := 0.0
+var work_k := 0                   # how many cards from the top participate in work_recipe
 
 
 func size() -> int:
@@ -33,10 +35,6 @@ func is_coin_stack() -> bool:
 	return not cards.is_empty() and cards[0].id == "coin"
 
 
-func y_offset() -> float:
-	return Y_OFFSET
-
-
 func card_ids() -> Array:
 	var out := []
 	for c in cards:
@@ -45,7 +43,9 @@ func card_ids() -> Array:
 
 
 func rect() -> Rect2:
-	var h := CardNode.SIZE.y + y_offset() * maxf(0.0, cards.size() - 1)
+	var h := CardNode.SIZE.y
+	if cards.size() > 1:
+		h += HEAD_GAP + Y_OFFSET * (cards.size() - 2)
 	return Rect2(base_pos, Vector2(CardNode.SIZE.x, h))
 
 
@@ -58,4 +58,6 @@ func bottom_card_rect() -> Rect2:
 
 
 func target_pos_for(index: int) -> Vector2:
-	return base_pos + Vector2(0, y_offset() * index)
+	if index <= 0:
+		return base_pos
+	return base_pos + Vector2(0, HEAD_GAP + Y_OFFSET * (index - 1))
