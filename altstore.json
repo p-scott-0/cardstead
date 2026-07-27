@@ -16,12 +16,12 @@
       "screenshots": [],
       "versions": [
         {
-          "version": "0.2.0",
-          "buildVersion": "0.2.0",
-          "date": "2026-07-26",
-          "localizedDescription": "Rolling build v0.2.0.",
+          "version": "0.3.0",
+          "buildVersion": "0.3.0",
+          "date": "2026-07-27",
+          "localizedDescription": "Rolling build v0.3.0.",
           "downloadURL": "https://github.com/p-scott-0/cardstead/releases/download/latest/Cardstead.ipa",
-          "size": 27731497,
+          "size": 27733976,
           "minOSVersion": "14.0"
         }
       ],
