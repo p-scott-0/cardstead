@@ -16,6 +16,7 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	theme = UiKit.theme()
 	visible = false
 
 	var dim := ColorRect.new()
@@ -30,16 +31,7 @@ func _ready() -> void:
 	add_child(center)
 
 	var panel := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("2b3a55")
-	sb.set_corner_radius_all(22)
-	sb.set_border_width_all(3)
-	sb.border_color = Color(1, 1, 1, 0.2)
-	sb.content_margin_left = 50.0
-	sb.content_margin_right = 50.0
-	sb.content_margin_top = 34.0
-	sb.content_margin_bottom = 34.0
-	panel.add_theme_stylebox_override("panel", sb)
+	panel.add_theme_stylebox_override("panel", UiKit.panel_box())
 	center.add_child(panel)
 
 	var col := VBoxContainer.new()

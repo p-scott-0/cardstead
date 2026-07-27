@@ -140,5 +140,11 @@ coin-merge radius 260. `StackData`: fan 38 px / coins 10 px.
   Done in v0.2.0: `assets/fonts/TwemojiMozilla.ttf` (COLR) is the icon font
   everywhere — system emoji proved unrenderable on iOS and incomplete on
   Windows 10. The sim test asserts glyph coverage for every icon (T12).
-- Day-end: animate the eaten cards on the board itself (they currently
-  disappear behind the summary popup, which lists them instead).
+- ~~Day-end: animate the eaten cards on the board itself~~ Done in v0.3.0:
+  eaten cards shrink/drift out (starved units flash red) before the summary;
+  input and work timers freeze during the DAY_END animation.
+- v0.3.0 also: grab-tab above every 2+ stack picks up the whole stack
+  (doubles as the work progress bar); coins are ordinary cards again
+  (normal fan, no badge — spawn-time merge into a nearby coin stack kept);
+  shared rounded UI theme (`ui/ui_kit.gd`).
+- Coin chest building (Stacklands-style coin storage card) — planned.

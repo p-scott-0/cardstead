@@ -20,6 +20,7 @@ var card_layer: Node2D
 var sell_mat: MatNode
 var buy_mat: MatNode
 var stacks: Array = []  # of StackData; array order == draw order (later on top)
+var _tab_sb: StyleBoxFlat
 
 # --- input state ---
 var dragged: StackData = null
@@ -36,6 +37,12 @@ var last_screen := {}  # touch index -> screen pos
 
 
 func _ready() -> void:
+	_tab_sb = StyleBoxFlat.new()
+	_tab_sb.bg_color = Color(0.07, 0.05, 0.03, 0.6)
+	_tab_sb.set_corner_radius_all(9)
+	_tab_sb.border_color = Color(1, 1, 1, 0.28)
+	_tab_sb.set_border_width_all(1)
+
 	card_layer = Node2D.new()
 	card_layer.name = "CardLayer"
 
@@ -260,6 +267,9 @@ func _complete_work(st: StackData) -> void:
 # ---------------------------------------------------------------- per-frame
 
 func _process(delta: float) -> void:
+	# freeze work and card easing while the day-end animation plays
+	if GameState.state == GameState.State.DAY_END:
+		return
 	var any_work := false
 	for st in stacks:
 		if st.work_recipe.is_empty() or st == dragged:
@@ -335,26 +345,17 @@ func _draw() -> void:
 		draw_line(Vector2(0, gy), Vector2(BOARD_SIZE.x, gy), Color(1, 1, 1, 0.03), 2.0)
 	draw_rect(Rect2(Vector2.ZERO, BOARD_SIZE), Color("1d3b2b"), false, 12.0)
 
-	# work progress bars
-	for st in stacks:
-		if st.work_recipe.is_empty():
-			continue
-		var frac := clampf(st.work_t / float(st.work_recipe["time"]), 0.0, 1.0)
-		var bar := Rect2(st.base_pos + Vector2(0, -20), Vector2(CardNode.SIZE.x, 12))
-		draw_rect(bar.grow(2.0), Color(0, 0, 0, 0.4))
-		draw_rect(Rect2(bar.position, Vector2(bar.size.x * frac, bar.size.y)), Color("f2cf5b"))
-
-	# coin-stack count badges
-	var badge_font := ThemeDB.fallback_font
+	# grab-tabs above stacks (pick up the whole stack) + work progress fill
 	for st: StackData in stacks:
-		if not st.is_coin_stack() or st.size() < 2:
+		var working := not st.work_recipe.is_empty()
+		if st == dragged or (st.size() < 2 and not working):
 			continue
-		var top := st.top_card_rect()
-		var chip := Rect2(top.position + Vector2(top.size.x - 52, -14), Vector2(58, 30))
-		draw_rect(chip, Color(0.13, 0.11, 0.08, 0.92))
-		draw_rect(chip, Color(1, 1, 1, 0.35), false, 2.0)
-		draw_string(badge_font, chip.position + Vector2(0, 22), "×%d" % st.size(),
-			HORIZONTAL_ALIGNMENT_CENTER, chip.size.x, 19, Color.WHITE)
+		var tab := tab_rect(st)
+		draw_style_box(_tab_sb, tab)
+		if working:
+			var frac := clampf(st.work_t / float(st.work_recipe["time"]), 0.0, 1.0)
+			draw_rect(Rect2(tab.position + Vector2(3, 3),
+				Vector2((tab.size.x - 6.0) * frac, tab.size.y - 6.0)), Color("f2cf5b"))
 
 
 # ---------------------------------------------------------------- input
@@ -364,6 +365,8 @@ func to_world(screen_pos: Vector2) -> Vector2:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if GameState.state == GameState.State.DAY_END:
+		return
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			_touch_down(event.index, event.position)
@@ -378,11 +381,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			camera.set_zoom_level(camera.zoom_level() / 1.12, event.position)
 
 
+func tab_rect(st: StackData) -> Rect2:
+	return Rect2(st.base_pos + Vector2(8, -26), Vector2(CardNode.SIZE.x - 16.0, 20))
+
+
 func _hit_test(world_pos: Vector2) -> Dictionary:
 	for si in range(stacks.size() - 1, -1, -1):
 		var st: StackData = stacks[si]
 		if st == dragged:
 			continue
+		# the grab-tab above a stack picks up the whole thing
+		if st.size() >= 2 and tab_rect(st).grow(6.0).has_point(world_pos):
+			return {"stack": st, "index": 0}
 		# check cards top-down so the visually-topmost card wins
 		for ci in range(st.cards.size() - 1, -1, -1):
 			if Rect2(st.target_pos_for(ci), CardNode.SIZE).has_point(world_pos):
@@ -634,8 +644,9 @@ func _weighted_pick(weights: Dictionary) -> String:
 
 # ---------------------------------------------------------------- day cycle
 
-# Feeds everyone at day end. Returns a summary dictionary for the popup.
-func day_end_feed() -> Dictionary:
+# Decides who eats what and who starves, WITHOUT touching the board.
+# Returns {eaten: [CardNode], victims: [CardNode], summary: Dictionary}.
+func _plan_feed() -> Dictionary:
 	var villagers: Array = []
 	var babies: Array = []
 	var foods: Array = []
@@ -655,19 +666,18 @@ func day_end_feed() -> Dictionary:
 	for b in babies:
 		need += int(b.def.get("eats", 1))
 
+	var eaten: Array = []
 	var eaten_food := 0
-	var eaten_cards := 0
 	var eaten_by_id := {}
 	for f in foods:
 		if need <= 0:
 			break
 		need -= int(f.def["food_value"])
 		eaten_food += int(f.def["food_value"])
-		eaten_cards += 1
 		eaten_by_id[f.id] = int(eaten_by_id.get(f.id, 0)) + 1
-		_remove_card(f)
+		eaten.append(f)
 
-	var starved := 0
+	var victims: Array = []
 	while need > 0 and (babies.size() + villagers.size()) > 0:
 		var victim: CardNode
 		if babies.size() > 0:
@@ -675,21 +685,67 @@ func day_end_feed() -> Dictionary:
 		else:
 			victim = villagers.pop_back()
 		need -= int(victim.def.get("eats", 2))
-		starved += 1
-		_remove_card(victim)
-	if starved > 0:
+		victims.append(victim)
+
+	return {
+		"eaten": eaten,
+		"victims": victims,
+		"summary": {
+			"villagers": villagers.size(),
+			"babies": babies.size(),
+			"eaten_food": eaten_food,
+			"eaten_cards": eaten.size(),
+			"eaten": eaten_by_id,
+			"starved": victims.size(),
+		},
+	}
+
+
+# Synchronous feed (sim tests + headless): apply the plan instantly.
+func day_end_feed() -> Dictionary:
+	var plan := _plan_feed()
+	for c in plan["eaten"]:
+		_remove_card(c)
+	for v in plan["victims"]:
+		_remove_card(v)
+	if plan["victims"].size() > 0:
 		Sfx.play("death")
 		_buzz(120)
-
 	emit_signal("board_changed")
-	return {
-		"villagers": villagers.size(),
-		"babies": babies.size(),
-		"eaten_food": eaten_food,
-		"eaten_cards": eaten_cards,
-		"eaten": eaten_by_id,
-		"starved": starved,
-	}
+	return plan["summary"]
+
+
+# Animated feed: eaten cards shrink and drift up, starved units fade out,
+# then the board is updated. Input and work timers are held during DAY_END.
+func day_end_feed_animated() -> Dictionary:
+	var plan := _plan_feed()
+	var doomed: Array = plan["eaten"] + plan["victims"]
+	if doomed.is_empty():
+		emit_signal("board_changed")
+		return plan["summary"]
+	if plan["victims"].size() > 0:
+		Sfx.play("death")
+		_buzz(120)
+	else:
+		Sfx.play("place")
+	var delay := 0.0
+	var last_tween: Tween = null
+	for c in doomed:
+		var tint := Color(1.0, 0.45, 0.4) if c in plan["victims"] else Color(1, 1, 1)
+		var tw: Tween = c.create_tween()
+		tw.tween_interval(delay)
+		tw.tween_property(c, "modulate", Color(tint, 0.0), 0.45) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_property(c, "scale", Vector2(0.1, 0.1), 0.45) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_property(c, "position", c.position + Vector2(0, -60), 0.45)
+		delay += 0.07
+		last_tween = tw
+	await last_tween.finished
+	for c in doomed:
+		_remove_card(c)
+	emit_signal("board_changed")
+	return plan["summary"]
 
 
 func _remove_card(card: CardNode) -> void:

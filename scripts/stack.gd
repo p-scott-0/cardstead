@@ -6,7 +6,6 @@ extends RefCounted
 # are derived from this structure every frame.
 
 const Y_OFFSET := 38.0
-const COIN_Y_OFFSET := 13.0
 
 var cards: Array = []             # of CardNode, index 0 = bottom
 var base_pos := Vector2.ZERO
@@ -35,7 +34,7 @@ func is_coin_stack() -> bool:
 
 
 func y_offset() -> float:
-	return COIN_Y_OFFSET if is_coin_stack() else Y_OFFSET
+	return Y_OFFSET
 
 
 func card_ids() -> Array:

@@ -260,6 +260,18 @@ func _run() -> void:
 	await get_tree().process_frame
 	check(absf(GameState.camera.zoom_level() - z_before) < 0.001, "T11 wheel down zooms back out")
 
+	# T13: the grab-tab above a stack picks up the whole stack
+	b.clear_board()
+	var tabA := b.spawn_card("wood", Vector2(800, 800))
+	b.stack_of(tabA).cards.append(b._new_card("stone"))
+	var tab_stack := b.stack_of(tabA)
+	var tab_hit: Dictionary = b._hit_test(tab_stack.base_pos + Vector2(CardNode.SIZE.x * 0.5, -16))
+	check(not tab_hit.is_empty() and int(tab_hit.get("index", -1)) == 0
+		and tab_hit.get("stack") == tab_stack, "T13 tab grabs whole stack")
+	var lower_hit: Dictionary = b._hit_test(tab_stack.target_pos_for(1) + Vector2(20, 30))
+	check(not lower_hit.is_empty() and int(lower_hit.get("index", -1)) == 1,
+		"T13 lower card still grabs a substack")
+
 	# T12: the bundled emoji font actually covers every glyph the game shows
 	var ef := CardNode.get_emoji_font()
 	check(ef is FontFile, "T12 bundled emoji font loaded (not system fallback)")

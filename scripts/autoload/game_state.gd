@@ -37,8 +37,12 @@ func _process(delta: float) -> void:
 
 func _end_day() -> void:
 	state = State.DAY_END
+	var summary: Dictionary
+	if DisplayServer.get_name() == "headless":
+		summary = board.day_end_feed()
+	else:
+		summary = await board.day_end_feed_animated()
 	get_tree().paused = true
-	var summary := board.day_end_feed()
 	summary["day"] = day
 	if int(summary["villagers"]) + int(summary["babies"]) <= 0:
 		state = State.GAME_OVER
