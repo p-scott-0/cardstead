@@ -50,8 +50,8 @@ static func panel_box(radius := 28) -> StyleBoxFlat:
 	sb.set_corner_radius_all(radius)
 	sb.set_border_width_all(2)
 	sb.border_color = PANEL_BORDER
-	sb.content_margin_left = 56.0
-	sb.content_margin_right = 56.0
-	sb.content_margin_top = 40.0
-	sb.content_margin_bottom = 40.0
+	sb.content_margin_left = 72.0
+	sb.content_margin_right = 72.0
+	sb.content_margin_top = 52.0
+	sb.content_margin_bottom = 52.0
 	return sb

@@ -33,28 +33,34 @@ var _name_label: Label
 var _sb_body: StyleBoxFlat
 var _sb_header: StyleBoxFlat
 var _sb_shadow: StyleBoxFlat
+var _sb_inner: StyleBoxFlat
+var _sb_plate: StyleBoxFlat
 
 const EMOJI_FONT_PATH := "res://assets/fonts/TwemojiMozilla.ttf"
 
 static var _emoji_font: Font
 
 
-# Bundled color emoji font (COLR renders on every platform, unlike system
-# emoji fonts — Apple Color Emoji draws blank in Godot on iOS, and Windows
-# 10's Segoe UI Emoji predates several of our card glyphs). The default
-# font is chained as fallback so letters and digits in mixed strings render.
+# Text font first, bundled Twemoji as fallback for the emoji gaps.
+# ORDER MATTERS: Twemoji ships blank keycap-component glyphs for 0-9 and #,
+# so with the emoji font first, digits resolve to invisible glyphs and
+# never fall back (the "Day  complete" bug). The default font has no emoji,
+# so base-first gives correct text AND correct emoji everywhere.
 static func get_emoji_font() -> Font:
 	if _emoji_font == null:
+		var emoji: Font
 		if ResourceLoader.exists(EMOJI_FONT_PATH):
-			var f: FontFile = load(EMOJI_FONT_PATH)
-			var fallbacks: Array[Font] = [ThemeDB.fallback_font]
-			f.fallbacks = fallbacks
-			_emoji_font = f
+			emoji = load(EMOJI_FONT_PATH)
 		else:
 			var sf := SystemFont.new()
 			sf.font_names = PackedStringArray([
 				"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"])
-			_emoji_font = sf
+			emoji = sf
+		var fv := FontVariation.new()
+		fv.base_font = ThemeDB.fallback_font
+		var fallbacks: Array[Font] = [emoji]
+		fv.fallbacks = fallbacks
+		_emoji_font = fv
 	return _emoji_font
 
 
@@ -95,7 +101,7 @@ func header_height() -> float:
 
 func _build_styles() -> void:
 	_sb_body = StyleBoxFlat.new()
-	_sb_body.bg_color = Color("f4efe2")
+	_sb_body.bg_color = Color("f6efdc")
 	_sb_body.set_corner_radius_all(int(RADIUS))
 	_sb_body.border_color = Color("2b2b23", 0.85)
 	_sb_body.set_border_width_all(2)
@@ -108,6 +114,18 @@ func _build_styles() -> void:
 	_sb_shadow = StyleBoxFlat.new()
 	_sb_shadow.bg_color = Color(0, 0, 0, 0.24)
 	_sb_shadow.set_corner_radius_all(int(RADIUS) + 2)
+
+	# thin light inner line: a hint of card-stock bevel
+	_sb_inner = StyleBoxFlat.new()
+	_sb_inner.draw_center = false
+	_sb_inner.set_corner_radius_all(int(RADIUS) - 3)
+	_sb_inner.border_color = Color(1, 1, 1, 0.32)
+	_sb_inner.set_border_width_all(2)
+
+	# soft type-tinted plate behind the icon
+	_sb_plate = StyleBoxFlat.new()
+	_sb_plate.bg_color = Color(header_color(), 0.13)
+	_sb_plate.set_corner_radius_all(20)
 
 
 func _build_labels() -> void:
@@ -149,7 +167,7 @@ func _build_labels() -> void:
 
 	if int(def.get("food_value", 0)) > 0:
 		var food_label := Label.new()
-		food_label.text = "+%d🍽" % int(def["food_value"])
+		food_label.text = "+%d🍗" % int(def["food_value"])
 		food_label.position = Vector2(8, SIZE.y - 32)
 		food_label.size = Vector2(70, 26)
 		food_label.add_theme_font_override("font", get_emoji_font())
@@ -163,7 +181,11 @@ func _draw() -> void:
 	var shadow_off := Vector2(0, 10) if lifted else Vector2(2, 5)
 	draw_style_box(_sb_shadow, Rect2(shadow_off, SIZE))
 	draw_style_box(_sb_body, Rect2(Vector2.ZERO, SIZE))
+	draw_style_box(_sb_plate, Rect2(Vector2(24, 56), Vector2(SIZE.x - 48, 92)))
 	draw_style_box(_sb_header, Rect2(Vector2.ZERO, Vector2(SIZE.x, header_height())))
+	draw_style_box(_sb_inner, Rect2(Vector2(4, 4), SIZE - Vector2(8, 8)))
 	if int(def.get("charges", 0)) > 0:
 		for i in charges_left:
-			draw_circle(Vector2(16 + i * 14, SIZE.y - 16), 4.5, header_color())
+			var p := Vector2(18 + i * 15, SIZE.y - 16)
+			draw_circle(p, 5.5, Color(0, 0, 0, 0.3))
+			draw_circle(p, 4.0, header_color())

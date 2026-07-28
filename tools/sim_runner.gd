@@ -321,11 +321,17 @@ func _run() -> void:
 	check(b.stack_of(pv).work_t > 0.5, "T15 work resumes after unpause")
 	GameState.day_time = 0.0
 
-	# T12: the bundled emoji font actually covers every glyph the game shows
-	var ef := CardNode.get_emoji_font()
-	check(ef is FontFile, "T12 bundled emoji font loaded (not system fallback)")
+	# T12: the bundled emoji font actually covers every glyph the game shows,
+	# and the composed font puts the TEXT font first (Twemoji has invisible
+	# digit glyphs, so emoji-first renders numbers blank).
+	var composed := CardNode.get_emoji_font()
+	check(composed is FontVariation and (composed as FontVariation).base_font == ThemeDB.fallback_font,
+		"T12 text font is the base of the composed font")
+	var ef: Font = load(CardNode.EMOJI_FONT_PATH)
+	check(ef is FontFile, "T12 bundled emoji font present")
+	check(ef.has_char(0x30), "T12 sanity: Twemoji really does claim digit glyphs")
 	var missing: Array = []
-	var ui_glyphs := "🃏📖💰🎴🪙🌙💀🔊🔇🍽"
+	var ui_glyphs := "🃏📖💰🎴🪙🌙💀🔊🔇🍗"
 	for id in Db.cards:
 		for i in String(Db.cards[id].get("icon", "")).length():
 			var cp: int = String(Db.cards[id]["icon"]).unicode_at(i)

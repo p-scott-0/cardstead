@@ -72,7 +72,7 @@ func _ready() -> void:
 	left.add_child(_coins_label)
 
 	_food_label = Label.new()
-	_food_label.text = "🍽 0 / 0"
+	_food_label.text = "🍗 0 / 0"
 	_food_label.add_theme_font_override("font", CardNode.get_emoji_font())
 	_food_label.add_theme_font_size_override("font_size", 26)
 	_food_label.add_theme_color_override("font_color", Color.WHITE)
@@ -129,18 +129,24 @@ func _on_timer_input(event: InputEvent) -> void:
 func update_stats(board: Board) -> void:
 	_coins_label.text = "🪙 %d    🃏 %d" % [board.count_cards("coin"), board.total_cards()]
 	var fs := board.food_stats()
-	_food_label.text = "🍽 %d / %d" % [fs.x, fs.y]
+	_food_label.text = "🍗 %d / %d" % [fs.x, fs.y]
 	_food_label.add_theme_color_override("font_color",
 		Color("ff8a7a") if fs.x < fs.y else Color.WHITE)
 
 
 func _apply_safe_area() -> void:
+	# insets must be window-relative: the safe area is in global screen
+	# coordinates, and on desktop the window can sit anywhere inside it
 	var sa: Rect2i = DisplayServer.get_display_safe_area()
+	var wp: Vector2i = DisplayServer.window_get_position()
 	var ws: Vector2i = DisplayServer.window_get_size()
 	var vs := get_viewport_rect().size
 	var sx := vs.x / maxf(1.0, float(ws.x))
 	var sy := vs.y / maxf(1.0, float(ws.y))
-	_margin.add_theme_constant_override("margin_left", int(float(sa.position.x) * sx) + 18)
-	_margin.add_theme_constant_override("margin_top", int(float(sa.position.y) * sy) + 12)
-	_margin.add_theme_constant_override("margin_right", int(float(ws.x - sa.position.x - sa.size.x) * sx) + 18)
-	_margin.add_theme_constant_override("margin_bottom", 12)
+	var inset_left := maxf(0.0, float(sa.position.x - wp.x))
+	var inset_top := maxf(0.0, float(sa.position.y - wp.y))
+	var inset_right := maxf(0.0, float((wp.x + ws.x) - (sa.position.x + sa.size.x)))
+	_margin.add_theme_constant_override("margin_left", int(inset_left * sx) + 34)
+	_margin.add_theme_constant_override("margin_top", int(inset_top * sy) + 24)
+	_margin.add_theme_constant_override("margin_right", int(inset_right * sx) + 34)
+	_margin.add_theme_constant_override("margin_bottom", 24)

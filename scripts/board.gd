@@ -21,6 +21,12 @@ var sell_mat: MatNode
 var buy_mat: MatNode
 var stacks: Array = []  # of StackData; array order == draw order (later on top)
 
+# felt-table dressing (all generated at runtime, no assets)
+var _felt_noise: NoiseTexture2D
+var _vignette: GradientTexture2D
+var _drag_tilt := 0.0
+var _last_drag_x := 0.0
+
 # --- input state ---
 var dragged: StackData = null
 var drag_touch := -1
@@ -36,6 +42,30 @@ var last_screen := {}  # touch index -> screen pos
 
 
 func _ready() -> void:
+	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+
+	var noise := FastNoiseLite.new()
+	noise.seed = 7
+	noise.frequency = 0.06
+	noise.fractal_octaves = 4
+	_felt_noise = NoiseTexture2D.new()
+	_felt_noise.noise = noise
+	_felt_noise.width = 256
+	_felt_noise.height = 256
+	_felt_noise.seamless = true
+	_felt_noise.changed.connect(queue_redraw)
+
+	_vignette = GradientTexture2D.new()
+	_vignette.fill = GradientTexture2D.FILL_RADIAL
+	_vignette.fill_from = Vector2(0.5, 0.5)
+	_vignette.fill_to = Vector2(0.5, 0.0)
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.55, 1.0])
+	grad.colors = PackedColorArray([Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.34)])
+	_vignette.gradient = grad
+	_vignette.width = 512
+	_vignette.height = 512
+
 	card_layer = Node2D.new()
 	card_layer.name = "CardLayer"
 
@@ -75,6 +105,8 @@ func setup_new_game() -> void:
 		var extra_coin := _new_card("coin")
 		stack_of(coin).cards.append(extra_coin)
 	spawn_card("card_pack", c + Vector2(480, -260))
+	for st: StackData in stacks:
+		recheck_stack(st)  # stack-head flags for the multi-card starter piles
 	_snap_all_cards()
 	emit_signal("board_changed")
 
@@ -301,6 +333,17 @@ func _process(delta: float) -> void:
 	if any_work:
 		queue_redraw()
 
+	# dragged stack tilts with horizontal motion (settles upright when still)
+	if dragged != null:
+		var dx := dragged.base_pos.x - _last_drag_x
+		_last_drag_x = dragged.base_pos.x
+		var target_tilt := clampf(-dx * 0.01, -0.11, 0.11)
+		_drag_tilt = lerpf(_drag_tilt, target_tilt, clampf(delta * 9.0, 0.0, 1.0))
+		for c in dragged.cards:
+			c.rotation = _drag_tilt
+	else:
+		_drag_tilt = 0.0
+
 	for st: StackData in stacks:
 		for i in st.cards.size():
 			var c: CardNode = st.cards[i]
@@ -356,13 +399,19 @@ func simulate(seconds: float, step := 1.0 / 30.0) -> void:
 # ---------------------------------------------------------------- drawing
 
 func _draw() -> void:
-	# felt background + border + subtle grid
-	draw_rect(Rect2(Vector2.ZERO, BOARD_SIZE), Color("2c5941"))
-	for gx in range(0, int(BOARD_SIZE.x) + 1, 250):
-		draw_line(Vector2(gx, 0), Vector2(gx, BOARD_SIZE.y), Color(1, 1, 1, 0.03), 2.0)
-	for gy in range(0, int(BOARD_SIZE.y) + 1, 250):
-		draw_line(Vector2(0, gy), Vector2(BOARD_SIZE.x, gy), Color(1, 1, 1, 0.03), 2.0)
-	draw_rect(Rect2(Vector2.ZERO, BOARD_SIZE), Color("1d3b2b"), false, 12.0)
+	# felt table: base green, fibre grain, soft vignette, stitched play-mat border
+	var board_rect := Rect2(Vector2.ZERO, BOARD_SIZE)
+	draw_rect(board_rect, Color("2f5a43"))
+	if _felt_noise.get_image() != null:
+		draw_texture_rect(_felt_noise, board_rect, true, Color(1, 1, 1, 0.07))
+	draw_texture_rect(_vignette, board_rect, false)
+	draw_rect(board_rect, Color("1b3527"), false, 14.0)
+	var stitch := board_rect.grow(-30.0)
+	var stitch_col := Color("e8d9ae", 0.22)
+	draw_dashed_line(stitch.position, Vector2(stitch.end.x, stitch.position.y), stitch_col, 3.0, 16.0)
+	draw_dashed_line(Vector2(stitch.position.x, stitch.end.y), stitch.end, stitch_col, 3.0, 16.0)
+	draw_dashed_line(stitch.position, Vector2(stitch.position.x, stitch.end.y), stitch_col, 3.0, 16.0)
+	draw_dashed_line(Vector2(stitch.end.x, stitch.position.y), stitch.end, stitch_col, 3.0, 16.0)
 
 	# work progress bars (only while a recipe is running)
 	for st: StackData in stacks:
@@ -444,6 +493,8 @@ func _pickup(st: StackData, index: int, idx: int, spos: Vector2) -> void:
 	picked.work_t = 0.0
 	picked.work_k = 0
 	dragged = picked
+	_last_drag_x = picked.base_pos.x
+	_drag_tilt = 0.0
 	drag_touch = idx
 	drag_offset = wpos - picked.base_pos
 	drag_start_screen = spos
@@ -542,6 +593,7 @@ func _drop(st: StackData, is_tap := false) -> void:
 	sell_mat.preview(-1)
 	for c in st.cards:
 		c.set_lifted(false)
+		c.rotation = 0.0
 
 	if is_tap and st.size() == 1 and st.top().id == "card_pack":
 		_open_pack(st)

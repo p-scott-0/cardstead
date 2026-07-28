@@ -75,8 +75,13 @@ func preview(value: int) -> void:
 
 func _draw() -> void:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0, 0, 0, 0.18)
-	sb.set_corner_radius_all(18)
-	sb.border_color = Color(1, 1, 1, 0.25)
-	sb.set_border_width_all(3)
+	sb.bg_color = Color(0, 0, 0, 0.2)
+	sb.set_corner_radius_all(20)
 	draw_style_box(sb, Rect2(Vector2.ZERO, MAT_SIZE))
+	# stitched edge, matching the play-mat border
+	var stitch := Rect2(Vector2.ZERO, MAT_SIZE).grow(-10.0)
+	var col := Color("e8d9ae", 0.3)
+	draw_dashed_line(stitch.position, Vector2(stitch.end.x, stitch.position.y), col, 2.5, 12.0)
+	draw_dashed_line(Vector2(stitch.position.x, stitch.end.y), stitch.end, col, 2.5, 12.0)
+	draw_dashed_line(stitch.position, Vector2(stitch.position.x, stitch.end.y), col, 2.5, 12.0)
+	draw_dashed_line(Vector2(stitch.end.x, stitch.position.y), stitch.end, col, 2.5, 12.0)

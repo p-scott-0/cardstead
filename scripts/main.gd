@@ -23,6 +23,12 @@ func _ready() -> void:
 		add_child(runner)
 		return
 
+	if "--screenshot" in OS.get_cmdline_user_args():
+		menu.visible = false
+		GameState.new_game()
+		add_child(load("res://tools/screenshot.gd").new())
+		return
+
 	menu.show_mode("boot")
 	get_tree().paused = true
 
